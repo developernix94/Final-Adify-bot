@@ -1,0 +1,330 @@
+<!doctype html>
+<html lang="bn">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Adify — Telegram Web App</title>
+  <meta name="description" content="Adify — Telegram WebApp frontend" />
+  <style>
+    /* Simple, clean single-file CSS */
+    :root {
+      --bg: #f6f8fb;
+      --card: #ffffff;
+      --accent: #2b7cff;
+      --muted: #6b7280;
+      --radius: 12px;
+      --pad: 16px;
+    }
+    html,body { height:100%; margin:0; font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; background:var(--bg); color:#111827; }
+    .wrap { max-width:920px; margin:28px auto; padding:20px; }
+    .card { background:var(--card); border-radius:var(--radius); padding:var(--pad); box-shadow:0 6px 20px rgba(20,20,50,0.06); margin-bottom:16px; }
+    header { display:flex; align-items:center; gap:12px; }
+    header h1 { margin:0; font-size:20px; }
+    header p { margin:0; color:var(--muted); font-size:13px; }
+    .row { display:flex; gap:12px; flex-wrap:wrap; align-items:stretch; }
+    .col { flex:1; min-width:220px; }
+    .big { font-size:28px; font-weight:700; }
+    .muted { color:var(--muted); font-size:13px; }
+    button { background:var(--accent); color:#fff; border:0; padding:10px 14px; border-radius:8px; cursor:pointer; font-weight:600; }
+    input, select, textarea { width:100%; padding:10px 12px; border-radius:8px; border:1px solid #e6e9ee; box-sizing:border-box; }
+    label { display:block; font-size:13px; margin-bottom:6px; color:var(--muted); }
+    .small { font-size:13px; color:var(--muted); }
+    .notice { background:#fff4e6; border:1px solid #ffe3b8; padding:10px; border-radius:8px; color:#7a4b00; }
+    .danger { background:#ffecec; border:1px solid #ffb3b3; padding:10px; border-radius:8px; color:#7a1b1b; }
+    .success { background:#ecfdf5; border:1px solid #bbf7d0; padding:10px; border-radius:8px; color:#065f46; }
+    footer { text-align:center; color:var(--muted); font-size:13px; margin-top:6px; }
+    @media (max-width:700px) {
+      .row { flex-direction:column; }
+      header { flex-direction:column; align-items:flex-start; gap:8px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card" id="mainCard">
+      <header>
+        <div>
+          <h1>Adify</h1>
+          <p class="muted">Telegram Mini App — manage your balance, withdraw, and profile</p>
+        </div>
+        <div style="margin-left:auto; text-align:right;">
+          <div id="userName" class="muted">Not signed in</div>
+          <div id="userId" class="small"></div>
+        </div>
+      </header>
+    </div>
+
+    <div class="row">
+      <div class="col card">
+        <div class="muted">ব্যালেন্স</div>
+        <div class="big" id="balanceAmount">—</div>
+        <div class="small" style="margin-top:8px;">সংরক্ষিত ব্যালেন্স আপনার অ্যাকাউন্টে দেখুন</div>
+        <div style="margin-top:12px;">
+          <button id="refreshBalanceBtn">Refresh Balance</button>
+        </div>
+      </div>
+
+      <div class="col card">
+        <div class="muted">প্রোফাইল</div>
+        <div id="profileBox">
+          <div class="small">Name: <strong id="pfName">—</strong></div>
+          <div class="small">Username: <strong id="pfUsername">—</strong></div>
+          <div class="small">Registered: <strong id="pfRegistered">—</strong></div>
+        </div>
+        <div style="margin-top:12px;">
+          <button id="openBotBtn">Open Chat (Bot)</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="muted">উত্তোলন (Withdraw)</div>
+      <div class="small" style="margin-bottom:8px;">নির্দেশ: পরিমাণ এবং পদ্ধতি লিখুন (উদাহরণ: <code>10 bKash</code>) — Binance প্রবেশ নিষিদ্ধ।</div>
+
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <div style="flex:1; min-width:160px;">
+          <label>Amount</label>
+          <input id="withdrawAmount" inputmode="decimal" placeholder="উদাহরণ: 10" />
+        </div>
+        <div style="flex:1; min-width:160px;">
+          <label>Method</label>
+          <select id="withdrawMethod">
+            <option value="bKash">bKash</option>
+            <option value="Nagad">Nagad</option>
+            <option value="BankTransfer">BankTransfer</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="margin-top:10px;">
+        <label>Details (account number / trx id / notes)</label>
+        <textarea id="withdrawDetails" rows="2" placeholder="অফিশিয়াল ডিটেইল লিখুন (প্রয়োজনে)"></textarea>
+      </div>
+
+      <div style="margin-top:10px; display:flex; gap:8px;">
+        <button id="submitWithdrawBtn">Submit Withdraw</button>
+        <button id="quickMessageBtn" style="background:#10b981;">Send Quick Msg</button>
+      </div>
+
+      <div style="margin-top:10px;">
+        <div id="withdrawMsg" class="small muted"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="muted">Join Channel (required)</div>
+      <div class="small">Some bots require joining a channel. Use the button below to open the channel, then press <strong>Check Join</strong>.</div>
+      <div style="margin-top:8px; display:flex; gap:8px;">
+        <button id="joinChannelBtn">Open Channel</button>
+        <button id="checkJoinBtn">Check Join</button>
+      </div>
+      <div style="margin-top:8px;">
+        <div id="joinStatus" class="small muted">Status: unknown</div>
+      </div>
+    </div>
+
+    <footer class="muted">Adify — frontend • Make sure your server URL is configured in the app.</footer>
+  </div>
+
+  <!-- Telegram Web App SDK -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+  <script>
+  /**************************************************************************
+   * FINAL single-file Adify WebApp frontend
+   *
+   * IMPORTANT:
+   * - Replace SERVER_URL with your deployed backend (Node.js) that implements:
+   *   GET /api/user?user_id=   , POST /api/withdraw  , POST /api/send_message , GET /api/check_join?user_id=
+   * - The server must enable CORS for this frontend (if hosted on GitHub Pages).
+   * - Binance is blocked client-side by keyword checks; server also blocks Binance in converted backend.
+   **************************************************************************/
+
+  const SERVER_URL = 'https://your-adify-server.com'; // <-- CHANGE this to your Adify backend base URL
+  // Example: const SERVER_URL = 'https://adify-123.onrender.com';
+
+  // Utility
+  const el = id => document.getElementById(id);
+  const setText = (id, txt) => { const n = el(id); if(n) n.textContent = txt; };
+
+  // Current user info (from Telegram)
+  let TG_USER = null; // {id, first_name, username}
+  let INIT_FROM_TG = false;
+
+  function initTelegramData() {
+    try {
+      // When opened inside Telegram, this is available
+      const tg = window.Telegram && window.Telegram.WebApp;
+      if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
+        const u = tg.initDataUnsafe.user;
+        TG_USER = { id: u.id, first_name: u.first_name || '', username: u.username || '' };
+        INIT_FROM_TG = true;
+      }
+    } catch(e){
+      console.warn('Telegram init failed', e);
+    }
+    // If not inside Telegram, keep TG_USER null and let user type their id
+    if (TG_USER) {
+      setText('userName', TG_USER.first_name + (TG_USER.username ? ' (@' + TG_USER.username + ')' : ''));
+      setText('userId', 'ID: ' + TG_USER.id);
+    } else {
+      setText('userName', 'Open this inside Telegram to auto-fill your account');
+      setText('userId', '');
+    }
+  }
+
+  // Fetch profile & balance from server
+  async function fetchProfileAndBalance() {
+    const uid = TG_USER ? TG_USER.id : null;
+    if (!uid) {
+      setText('balanceAmount', '—');
+      setText('pfName', '—');
+      setText('pfUsername', '—');
+      setText('pfRegistered', '—');
+      return;
+    }
+    try {
+      const r = await fetch(`${SERVER_URL}/api/user?user_id=${encodeURIComponent(uid)}`, { credentials: 'omit' });
+      const j = await r.json();
+      if (!j.ok) throw new Error(j.error || 'failed');
+      const u = j.user;
+      setText('balanceAmount', u.balance == null ? '0' : String(u.balance));
+      setText('pfName', u.first_name || '—');
+      setText('pfUsername', u.username || '—');
+      setText('pfRegistered', j.created_at || '—');
+    } catch (err) {
+      console.error('fetchProfile error', err);
+      setText('balanceAmount', '—');
+      setText('pfName', '—');
+      setText('pfUsername', '—');
+      el('withdrawMsg').textContent = 'Could not fetch profile. Make sure SERVER_URL is correct and server allows CORS.';
+    }
+  }
+
+  // Withdraw submission
+  async function submitWithdraw() {
+    const uid = TG_USER ? TG_USER.id : prompt('Enter your Telegram user id (numeric):');
+    if (!uid) return alert('User id required.');
+
+    const amountRaw = el('withdrawAmount').value.trim();
+    const method = el('withdrawMethod').value.trim();
+    const details = el('withdrawDetails').value.trim();
+
+    if (!amountRaw) return alert('Enter amount.');
+    const amount = parseFloat(amountRaw);
+    if (isNaN(amount) || amount <= 0) return alert('Enter a valid amount.');
+
+    // Block Binance client-side
+    const banned = /binance/i;
+    if (banned.test(method) || banned.test(details)) {
+      el('withdrawMsg').textContent = 'Binance option removed — please select another method.';
+      return;
+    }
+
+    // POST to backend
+    try {
+      el('submitWithdrawBtn').disabled = true;
+      el('withdrawMsg').textContent = 'Submitting withdraw...';
+      const resp = await fetch(`${SERVER_URL}/api/withdraw`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: uid, amount, method, details })
+      });
+      const j = await resp.json();
+      if (!resp.ok) throw new Error(j.error || JSON.stringify(j));
+      el('withdrawMsg').textContent = 'Withdraw request submitted. Admin will review.';
+      // Optionally refresh balance
+      await fetchProfileAndBalance();
+    } catch (err) {
+      console.error('withdraw error', err);
+      el('withdrawMsg').textContent = 'Failed to submit withdraw: ' + (err.message || err);
+    } finally {
+      el('submitWithdrawBtn').disabled = false;
+    }
+  }
+
+  // Quick message: send text to user's chat via server-side bot
+  async function sendQuickMessage() {
+    const uid = TG_USER ? TG_USER.id : prompt('User id:');
+    if (!uid) return;
+    const text = prompt('Message to send (e.g., I want support):','I need help with Adify');
+    if (!text) return;
+    try {
+      el('quickMessageBtn').disabled = true;
+      const resp = await fetch(`${SERVER_URL}/api/send_message`, {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ tg_user_id: uid, text })
+      });
+      const j = await resp.json();
+      if (!resp.ok) throw new Error(j.error || JSON.stringify(j));
+      alert('Message sent via bot.');
+    } catch (err) {
+      alert('Failed to send message: ' + (err.message || err));
+    } finally {
+      el('quickMessageBtn').disabled = false;
+    }
+  }
+
+  // Open Chat / Open Bot in Telegram (deep link)
+  function openBotChat() {
+    const botUsername = '@AdifyBot'; // change if your bot username differs
+    // prefer tg:// link when available
+    const tgUrl = `tg://resolve?domain=${botUsername.replace('@','')}`;
+    const webUrl = `https://t.me/${botUsername.replace('@','')}`;
+    // Try open tg://
+    window.location.href = tgUrl;
+    // fallback: open web url after a short delay
+    setTimeout(()=> window.open(webUrl, '_blank'), 800);
+  }
+
+  // Join channel button & check join
+  function openChannel() {
+    // Replace with your required channel if desired
+    const channel = '@YourChannelHere';
+    const tUrl = `tg://resolve?domain=${channel.replace('@','')}`;
+    const webUrl = `https://t.me/${channel.replace('@','')}`;
+    window.location.href = tUrl;
+    setTimeout(()=> window.open(webUrl, '_blank'), 800);
+  }
+
+  async function checkJoinStatus() {
+    const uid = TG_USER ? TG_USER.id : prompt('Enter your Telegram user id:');
+    if (!uid) return;
+    try {
+      setText('joinStatus', 'Checking...');
+      const resp = await fetch(`${SERVER_URL}/api/check_join?user_id=${encodeURIComponent(uid)}`);
+      const j = await resp.json();
+      if (!resp.ok) throw new Error(j.error || 'failed');
+      if (j.joined) {
+        setText('joinStatus', 'Status: Joined ✅');
+      } else {
+        setText('joinStatus', 'Status: Not joined ❌');
+      }
+    } catch (err) {
+      console.error('check join error', err);
+      setText('joinStatus', 'Error checking join — see console.');
+    }
+  }
+
+  // Event bindings
+  document.addEventListener('DOMContentLoaded', () => {
+    initTelegramData();
+    document.getElementById('refreshBalanceBtn').addEventListener('click', fetchProfileAndBalance);
+    document.getElementById('submitWithdrawBtn').addEventListener('click', submitWithdraw);
+    document.getElementById('quickMessageBtn').addEventListener('click', sendQuickMessage);
+    document.getElementById('openBotBtn').addEventListener('click', openBotChat);
+    document.getElementById('joinChannelBtn').addEventListener('click', openChannel);
+    document.getElementById('checkJoinBtn').addEventListener('click', checkJoinStatus);
+
+    // auto-load profile if inside Telegram
+    if (TG_USER) {
+      fetchProfileAndBalance();
+      // minimize telegram header (if available)
+      try { Telegram.WebApp.MainButton.hide(); } catch(e) {}
+    }
+  });
+  </script>
+</body>
+</html>
